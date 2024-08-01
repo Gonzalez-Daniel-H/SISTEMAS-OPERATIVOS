@@ -6,7 +6,7 @@ Tema: Aprendiendo C
 -Programa propio
 *****************************************************************/
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h> 
 void valor(int bonificacion,int age); 
 int numero(int num);
 int tapu(int numdias);
