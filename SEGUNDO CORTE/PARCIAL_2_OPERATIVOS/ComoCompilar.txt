@@ -1,0 +1,2 @@
+gcc parcial.c -o parcial
+./parcial 5 archivo00.txt 5 archivo01.txt
