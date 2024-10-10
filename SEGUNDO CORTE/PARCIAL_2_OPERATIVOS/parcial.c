@@ -6,10 +6,11 @@ objetivo: Aplicar los conceptos vistos en clase
 *********************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <string.h>
+
 
 // Función para leer el arreglo desde un archivo
 void leer_arreglo(const char* archivo, int* n, int** arreglo) {
