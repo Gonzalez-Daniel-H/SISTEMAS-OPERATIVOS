@@ -6,40 +6,61 @@ objetivo: Aplicar los conceptos vistos en clase
 *********************************************/
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
 
-// Función para leer el arreglo desde un archivo
-void cargar_arreglo(const char* archivo, int* tamano, int** arreglo) {
+int* cargar_arreglo(const char* archivo, int* tamano) {
     FILE* f = fopen(archivo, "r");
     if (!f) {
         perror("Error al abrir archivo");
         exit(EXIT_FAILURE);
     }
 
-    fscanf(f, "%d", tamano);
-    *arreglo = malloc(*tamano * sizeof(int));
+    fscanf(f, "%d", tamano);  // Leer tamaño del arreglo
+    int* arreglo = (int*)malloc((*tamano) * sizeof(int));
+    if (!arreglo) {
+        perror("Error al asignar memoria");
+        fclose(f);
+        exit(EXIT_FAILURE);
+    }
 
-    char buffer[1024];
-    fscanf(f, "%s", buffer);
-
-    char* token = strtok(buffer, ",");
-    int i = 0;
-    while (token != NULL && i < *tamano) {
-        (*arreglo)[i++] = atoi(token);
-        token = strtok(NULL, ",");
+    for (int i = 0; i < *tamano; i++) {
+        fscanf(f, "%d", &arreglo[i]);
     }
 
     fclose(f);
+    return arreglo;
 }
 
-// Función para sumar los elementos de un arreglo
 int sumar_arreglo(int* arreglo, int tamano) {
-    int suma_total = 0;
+    int suma = 0;
     for (int i = 0; i < tamano; i++) {
-        suma_total += arreglo[i];
+        suma += arreglo[i];
     }
-    return suma_total;
+    return suma;
+}
+
+void procesar_arreglo(const char* archivo, int tamano, int* pipe_fd) {
+    int* arreglo = cargar_arreglo(archivo, &tamano);
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("Error al crear proceso");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) {  // Proceso hijo
+        close(pipe_fd[0]); 
+        int suma = sumar_arreglo(arreglo, tamano);
+        printf("Proceso [%d]: Suma de %s = %d\n", getpid(), archivo, suma);
+        write(pipe_fd[1], &suma, sizeof(suma));
+        close(pipe_fd[1]); 
+        free(arreglo);
+        exit(0);
+    }
+
+    free(arreglo);
 }
 
 int main(int argc, char* argv[]) {
@@ -48,69 +69,39 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    int N1 = atoi(argv[1]), N2 = atoi(argv[3]);
-    char* archivo1 = argv[2], *archivo2 = argv[4];
+    int N1 = atoi(argv[1]);
+    int N2 = atoi(argv[3]);
+    const char* archivo1 = argv[2];
+    const char* archivo2 = argv[4];
 
-    int *arreglo1 = NULL, *arreglo2 = NULL;
-
-    // Cargar arreglos
-    cargar_arreglo(archivo1, &N1, &arreglo1);
-    cargar_arreglo(archivo2, &N2, &arreglo2);
-
-    int fd1[2], fd2[2], fd3[2];
-    pipe(fd1); 
-    pipe(fd2); 
-    pipe(fd3);
-
-    pid_t pid1 = fork();
-    if (pid1 == 0) { // Primer proceso hijo
-        close(fd1[0]);
-        int suma1 = sumar_arreglo(arreglo1, N1);
-        printf("Proceso A [%d]: Suma archivo1 = %d\n", getpid(), suma1);
-        write(fd1[1], &suma1, sizeof(suma1));
-        close(fd1[1]);
-        exit(0);
+    int pipe_fd1[2], pipe_fd2[2];
+    if (pipe(pipe_fd1) == -1 || pipe(pipe_fd2) == -1) {
+        perror("Error al crear pipes");
+        exit(EXIT_FAILURE);
     }
 
-    pid_t pid2 = fork();
-    if (pid2 == 0) { // Segundo proceso hijo
-        close(fd2[0]);
-        int suma2 = sumar_arreglo(arreglo2, N2);
-        printf("Proceso B [%d]: Suma archivo2 = %d\n", getpid(), suma2);
-        write(fd2[1], &suma2, sizeof(suma2));
-        close(fd2[1]);
-        exit(0);
-    }
+    // Procesar el primer archivo en un proceso hijo
+    procesar_arreglo(archivo1, N1, pipe_fd1);
 
-    pid_t pid3 = fork();
-    if (pid3 == 0) { // Tercer proceso hijo
-        close(fd1[1]);
-        close(fd2[1]);
+    // Procesar el segundo archivo en otro proceso hijo
+    procesar_arreglo(archivo2, N2, pipe_fd2);
 
-        int suma1, suma2;
-        read(fd1[0], &suma1, sizeof(suma1));
-        read(fd2[0], &suma2, sizeof(suma2));
+    // Proceso padre
+    close(pipe_fd1[1]);  
+    close(pipe_fd2[1]);  
 
-        int suma_total = suma1 + suma2;
-        printf("Proceso C [%d]: Suma total = %d\n", getpid(), suma_total);
-        write(fd3[1], &suma_total, sizeof(suma_total));
+    int suma1, suma2;
+    read(pipe_fd1[0], &suma1, sizeof(suma1));  
+    read(pipe_fd2[0], &suma2, sizeof(suma2));  
 
-        close(fd1[0]);
-        close(fd2[0]);
-        close(fd3[1]);
-        exit(0);
-    }
+    close(pipe_fd1[0]);  
+    close(pipe_fd2[0]);  
 
-    close(fd1[1]);
-    close(fd2[1]);
-    close(fd3[1]);
+    int suma_total = suma1 + suma2;
+    printf("Padre [%d]: Suma total = %d\n", getpid(), suma_total);
 
-    int suma_final;
-    read(fd3[0], &suma_final, sizeof(suma_final));
-    printf("Padre [%d]: Suma final = %d\n", getpid(), suma_final);
-
-    free(arreglo1);
-    free(arreglo2);
+    wait(NULL);
+    wait(NULL);
 
     return 0;
 }
