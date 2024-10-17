@@ -1,7 +1,9 @@
 guardar el codigo gcc ServidorBidreccional.c -o servidor.
 ./servidor
+
 guardar el codigo gcc ClienteBidreccional.c -o Cliente.
 ./Cliente
+
 El cliente  envia mensajes al servidor (FIFO_CLIENTE) y otro para recibir respuestas (FIFO_SERVER). Abre ambos FIFOs y entra en un bucle donde solicita al usuario que ingrese un mensaje. Si el mensaje no es "end", lo envía al servidor a través del FIFO y espera una respuesta, la cual imprime junto con su longitud. Si el usuario introduce "end", el cliente envía este mensaje al servidor, imprime un mensaje de despedida y cierra ambos FIFOs, finalizando así la comunicación.
 
 Servidor:
