@@ -3,65 +3,68 @@ Fecha: 07 de Noviembre del 2024
 Autor: Daniel Gonzalez
 Materia: Sistemas Operativos
 objetivo: Aplicar los conceptos vistos en clase
+#include <stdio.h>
 *********************************************/
 #include <stdio.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdlib.h>
 
-#define NUM_THREADS 5
+#define NUM_HILOS 5
 
-sem_t semaphores[NUM_THREADS]; // Un arreglo de semaforos para controlar el orden de ejecucion
+sem_t semaforos[NUM_HILOS];
 
-void* threadFunction(void* threadid) {
-    long tid = (long)threadid;
+void* funcion_hilo(void* arg) {
+    int indice = *(int*)arg;
+    free(arg);  // Liberar la memoria asignada para el índice
 
-    // Espera en el semaforo correspondiente
-    sem_wait(&semaphores[tid]);
+    // Espera a que su semáforo este disponible
+    sem_wait(&semaforos[indice]);
 
-    // Imprime mensaje de inicio
-    printf("Hilo %ld ha iniciado\n", tid);
+    pthread_t id = pthread_self();  // Obtener el ID real del hilo
+    printf("Hilo %lu ha iniciado\n", id);
 
-    // Bucle que cuenta hasta 300
-    for (int i = 0; i < 300; i++) {
-        // Simulacion de trabajo, el bucle no hace nada especifico
-    }
+    // Contador simulado (simplemente para que el hilo haga algo)
+    for (int i = 0; i < 300; i++);
 
-    // Imprime mensaje de finalizaciÃ³n
-    printf("Hilo %ld ha finalizado\n", tid);
+    printf("Hilo %lu ha finalizado\n", id);
 
-    // Libera el siguiente semaforo si no es el altimo hilo
-    if (tid < NUM_THREADS - 1) {
-        sem_post(&semaphores[tid + 1]);
+    // Desbloquear el siguiente semaforo 
+    if (indice + 1 < NUM_HILOS) {
+        sem_post(&semaforos[indice + 1]);
     }
 
     pthread_exit(NULL);
 }
 
 int main() {
-    pthread_t threads[NUM_THREADS];
-    long t;
+    pthread_t hilos[NUM_HILOS];
 
-    for (t = 0; t < NUM_THREADS; t++) {
-        sem_init(&semaphores[t], 0, (t == 0) ? 1 : 0); 
+    // Inicializar los semaforos
+    for (int i = 0; i < NUM_HILOS; i++) {
+        sem_init(&semaforos[i], 0, 0);
     }
 
-    // Creacion de los hilos
-    for (t = 0; t < NUM_THREADS; t++) {
-        if (pthread_create(&threads[t], NULL, threadFunction, (void*)t)) {
-            fprintf(stderr, "Error al crear el hilo %ld\n", t);
-            exit(1);
-        }
+    // Desbloquear el primer semaforo para el primer hilo
+    sem_post(&semaforos[0]);
+
+    // Crear los hilos
+    for (int i = 0; i < NUM_HILOS; i++) {
+        int* indice = malloc(sizeof(int));  
+        *indice = i;
+        pthread_create(&hilos[i], NULL, funcion_hilo, indice);
     }
 
     // Esperar a que todos los hilos terminen
-    for (t = 0; t < NUM_THREADS; t++) {
-        pthread_join(threads[t], NULL);
+    for (int i = 0; i < NUM_HILOS; i++) {
+        pthread_join(hilos[i], NULL);
     }
 
-    for (t = 0; t < NUM_THREADS; t++) {
-        sem_destroy(&semaphores[t]);
+    // Destruir los semaforos
+    for (int i = 0; i < NUM_HILOS; i++) {
+        sem_destroy(&semaforos[i]);
     }
 
-    pthread_exit(NULL);
+    return 0;
 }
+
