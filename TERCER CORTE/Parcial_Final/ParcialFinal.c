@@ -11,12 +11,12 @@ objetivo: Aplicar los conceptos vistos en clase
 
 #define NUM_THREADS 5
 
-sem_t semaphores[NUM_THREADS]; // Un arreglo de semáforos para controlar el orden de ejecución
+sem_t semaphores[NUM_THREADS]; // Un arreglo de semaforos para controlar el orden de ejecucion
 
 void* threadFunction(void* threadid) {
     long tid = (long)threadid;
 
-    // Espera en el semáforo correspondiente
+    // Espera en el semaforo correspondiente
     sem_wait(&semaphores[tid]);
 
     // Imprime mensaje de inicio
@@ -24,13 +24,13 @@ void* threadFunction(void* threadid) {
 
     // Bucle que cuenta hasta 300
     for (int i = 0; i < 300; i++) {
-        // Simulación de trabajo, el bucle no hace nada específico
+        // Simulacion de trabajo, el bucle no hace nada especifico
     }
 
     // Imprime mensaje de finalización
     printf("Hilo %ld ha finalizado\n", tid);
 
-    // Libera el siguiente semaforo si no es el último hilo
+    // Libera el siguiente semaforo si no es el altimo hilo
     if (tid < NUM_THREADS - 1) {
         sem_post(&semaphores[tid + 1]);
     }
@@ -42,9 +42,8 @@ int main() {
     pthread_t threads[NUM_THREADS];
     long t;
 
-    // Inicialización de los semaforos
     for (t = 0; t < NUM_THREADS; t++) {
-        sem_init(&semaphores[t], 0, (t == 0) ? 1 : 0); // Solo el primer hilo esta desbloqueado al inicio
+        sem_init(&semaphores[t], 0, (t == 0) ? 1 : 0); 
     }
 
     // Creacion de los hilos
