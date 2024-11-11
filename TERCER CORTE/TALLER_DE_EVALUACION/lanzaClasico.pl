@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #************************************************************************************************
 # Fecha: 31/10/2024
-# Autor: Daniel Castro-ELiana Cepeda-Maria Paula Rodriguez- Daniel Gonzalez
+# Autor: Daniel Castro - Eliana Cepeda - Maria Paula Rodriguez - Daniel Gonzalez
 # Materia: Sistemas Operativos
 # Tema: Taller 6 - Evaluación de rendimiento
 # Descripción:
@@ -66,4 +66,3 @@ foreach my $size (@Size_Matriz) {
 # Cierra el archivo de salida
 close($out_fh);
 print "Resultados guardados en $output_file\n";
-
